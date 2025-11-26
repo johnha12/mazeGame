@@ -1,0 +1,112 @@
+Game
+  ball in maze, reach destination.
+  api: https://brm.io/matter-js/
+  library: https://cdnjs.com/libraries/matter-js
+  documentation: https://brm.io/matter-js/docs/
+Challenges
+  - how to generate a maze?
+      A: use an algorithm + recursion. tree data structure
+  - how to draw screen?
+      A: use matter js
+  - how to make keyboard move ball?
+      A: matter js have map keys
+  - how to detect green square?
+      matter js can detect collisions
+
+Project setup
+
+Terminology
+world: object that contain different "things"
+engine: reads current state of world then calculate changes in positions
+  of all shapes in the "world"
+runner: gets engine and world to work together. runs 60 times per min
+render: whenever engine updates, render shows all shape onto screen
+body: shape we're displaying. ex. circle
+- soon write a boilerplate code.
+
+Initial code
+- made a canvas to add drawings
+- eventually span canvas to entire device screen
+- can create shape. just need to eventually add to world
+- default gravity on
+
+Playing around
+- recreate demo of shapes in world
+click and drag: use Mouse and MouseConstraint
+generate shapes: same with walls
+
+Generate maze
+- create grid of "cells"
+- pick random starting cell
+for cell:
+  build random list of neighbors
+  if neighbor has been visited before, remove neighbor
+  for each remaining neighbor, move to it and remove wall
+  repeat for new neighbor
+- will backtrack if cannot vist further
+- always a valid path from start to end.
+Grid
+- 2d array
+  one 2d for horizontal, another 2d for vertical
+- vertical wall and horizontal wall
+- boolean, true => no wall, false => wall
+- grid is 3x3, vertical is 2x3
+
+Variables
+- start with width=600, height=600
+- make variable depend on width/height, so we can scale later
+
+Grid
+- 2d array
+- all values start with false
+- just record if each cell is visited/not
+
+vertical walls
+[
+  [F, F]
+  [F, F]
+  [F, F]
+]
+
+horizontal walls
+[
+  [F, F, F]
+  [F, F, F]
+]
+
+Starting point
+- random row, random column
+- 0 based index
+
+Find neighbors
+- we know were at row r, and column c 
+  so we can r--, r++, c--, and c++
+  change row => up and down
+  change column => left right
+
+Remove wall (3x3 grid example)
+  - access to direction, currRow, currColumn, nextRow, nextColumn
+  moving vertical:
+    - verticals 2d array is 3x2
+    - row = row
+    - column is 0 or 1, depending on left or right
+  moving horizontal
+    - 2d array 2x3
+    - up: row - 1
+    - down: row
+    - column: column
+    iterate over walls
+    - using rectangles to make walls
+    - false mean wall, true means no wall
+    - uses cells, height, width
+      horizontal walls
+      x = (columnIndex * unitLength) + (unitLength/2)
+      y = (rowIndex * unitLength) + unitLength
+      vertical walls
+      x = columnIndex * unitLength + unitLength
+      y = rowIndex * unitLength + unitLength/2
+
+Drawing goal
+- bottom right corner
+- coordinates: width - unitLength/2
+  height - unitLength/2
