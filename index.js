@@ -4,23 +4,28 @@ const {
   Runner, 
   World, 
   Bodies, 
+  Body,
+  Events,
   MouseConstraint, 
   Mouse 
 } = Matter;   // script tag added entire Matter library
 
-const cells = 3;
-const width = 600;    // note square maze < complicated rectangle
-const height = 600;   // later will span device height
-const unitLength = width / cells;
+const cellsHorizontal = 20;
+const cellsVertical = 14;
+const width = window.innerWidth;    // note square maze < complicated rectangle
+const height = window.innerHeight;   // later will span device height
+const unitLengthX = width / cellsHorizontal;
+const unitLengthY = height / cellsVertical;
 
 // boilerplate code:
 const engine = Engine.create();
+engine.world.gravity.y = 0;  // disable gravity
 const {world} = engine;     // world got created w/ engine
 const render = Render.create({
   element: document.body,  // add additional body element
   engine: engine,
   options: {
-    wireframes: true,
+    wireframes: false,
     width,
     height
   }
@@ -56,25 +61,25 @@ const shuffle = (arr)=> {
     const temp = arr[counter];
     arr[counter] = arr[index];
     arr[index] = temp;
-
-    return arr
   }
+  
+  return arr
 };
 
-const grid = Array(cells)
+const grid = Array(cellsVertical)
 .fill(null)
-.map(() => Array(cells).fill(false));
+.map(() => Array(cellsHorizontal).fill(false));
 
-const verticals = Array(cells)
+const verticals = Array(cellsVertical)
 .fill(null)
-.map(() => Array(cells - 1).fill(false))
+.map(() => Array(cellsHorizontal - 1).fill(false))
 
-const horizontals = Array(cells - 1)
+const horizontals = Array(cellsVertical - 1)
 .fill(null)
-.map(() => Array(cells).fill(false))
+.map(() => Array(cellsHorizontal).fill(false))
 
-const startRow = Math.floor(Math.random() * cells);
-const startColumn = Math.floor(Math.random() * cells);
+const startRow = Math.floor(Math.random() * cellsVertical);
+const startColumn = Math.floor(Math.random() * cellsHorizontal);
 
 const stepThroughCell = (row, column) => {
   //if already visited [row, column], then return
@@ -97,7 +102,7 @@ const stepThroughCell = (row, column) => {
   for (let neighbor of neighbors) {
     const [nextRow, nextColumn, direction] = neighbor;
     // see if each neighbor is out of bounds
-    if (nextRow < 0 || nextRow >= cells ||nextColumn < 0 || nextColumn >= cells) {
+    if (nextRow < 0 || nextRow >= cellsVertical ||nextColumn < 0 || nextColumn >= cellsHorizontal) {
       continue;
     }
 
@@ -131,11 +136,17 @@ horizontals.forEach((row, rowIndex) => {
       return;
     };
     const wall = Bodies.rectangle(
-      (columnIndex * unitLength) + (unitLength / 2),
-      (rowIndex * unitLength) + unitLength,
-      unitLength,
+      (columnIndex * unitLengthX) + (unitLengthX / 2),
+      (rowIndex * unitLengthY) + unitLengthY,
+      unitLengthX,
       5,
-      {isStatic: true}
+      {
+        label: "wall",
+        isStatic: true,
+        render: {
+          fillStyle: "white"
+        }
+      }
     );
     World.add(world, wall);
   });
@@ -147,11 +158,17 @@ verticals.forEach((row, rowIndex) => {
       return;
     }
     const wall = Bodies.rectangle(
-      columnIndex * unitLength + unitLength,
-      rowIndex * unitLength + unitLength / 2,
+      columnIndex * unitLengthX + unitLengthX,
+      rowIndex * unitLengthY + unitLengthY / 2,
       5,
-      unitLength,
-      {isStatic: true}
+      unitLengthY,
+      {
+        label: "wall",
+        isStatic: true,
+        render: {
+          fillStyle: "white"
+        }
+      }
     );
     World.add(world, wall);
   });
@@ -159,20 +176,71 @@ verticals.forEach((row, rowIndex) => {
 
 //goal
 const goal = Bodies.rectangle(
-  width - unitLength / 2,
-  height - unitLength / 2,
-  unitLength * 0.7,
-  unitLength * 0.7,
-  {isStatic: true}
+  width - unitLengthX / 2,
+  height - unitLengthY / 2,
+  unitLengthX * 0.7,
+  unitLengthY * 0.7,
+  {
+    isStatic: true,
+    label: "goal",
+    render: {fillStyle: "green"}
+  }
 );
 
 World.add(world, goal);
 
 //ball
+const ballRadius = Math.min(unitLengthX, unitLengthY) / 4;
 const ball = Bodies.circle(
-  unitLength / 2,
-  unitLength / 2,
-  unitLength / 4,
+  unitLengthX / 2,
+  unitLengthY / 2,
+  ballRadius,
+  {
+    label: "ball",
+    render: {fillStyle: "blue"}
+  }
 );
 
 World.add(world, ball);
+
+document.addEventListener("keydown", event => { // starting to derail from tutorial
+  const {x, y} = ball.velocity;
+  if (event.code === "KeyW") {  //up
+    Body.setVelocity(ball, {x, y: y - 5});
+  }
+  if (event.code === "KeyA") {  //left
+    Body.setVelocity(ball, {x: x - 5, y});
+  }
+  if (event.code === "KeyS") {  //down
+    Body.setVelocity(ball, {x, y: y + 5});
+  }
+  if (event.code === "KeyD") {  //right
+    Body.setVelocity(ball, {x: x + 5, y});
+  }
+});
+
+
+// win condition
+
+Events.on(engine, "collisionStart", event => {
+  event.pairs.forEach(collision => {
+    const labels = ["ball", "goal"];
+    if (labels.includes(collision.bodyA.label)
+    && labels.includes(collision.bodyB.label)) {
+      document.querySelector(".winner").classList.remove("hidden");
+      world.gravity.y = 1;
+      world.bodies.forEach(body => {
+        if (body.label === "wall") {
+          Body.setStatic(body, false);
+          Body.set(body, {
+            density: 0.01,        // heavier
+            friction: 0.8,        // sliding resistance
+            frictionAir: 0.2,     // slows velocity over time
+            // restitution: 0,       // no bouncing
+            inertia: 20     // prevents tipping/spinning (optional)
+          });
+        }
+      });
+    }
+  });
+});

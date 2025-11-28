@@ -110,3 +110,22 @@ Drawing goal
 - bottom right corner
 - coordinates: width - unitLength/2
   height - unitLength/2
+
+Moving ball
+  - keyboard press, using wasd
+  - can search javascript keycodes
+
+ball and goal collision
+- Matter has 1 Event, 
+after event, the event will be wiped.
+- go over collisions, then label
+
+win
+- turn off all static
+- turn gravity back on
+
+span device length
+- 1 CSS rule
+- change functions
+- window.innerWidth, window.innerHeight
+
